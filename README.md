@@ -1,2 +1,2 @@
 # syncevent2kafka
-synv event to kafka
+sync event to kafka
