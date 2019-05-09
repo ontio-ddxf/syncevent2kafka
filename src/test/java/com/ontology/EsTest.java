@@ -31,7 +31,7 @@ public class EsTest {
     @Test
     public void testSearchES2() {
         Map<String, Object> map = new HashMap<>();
-        map.put("height", 1692733);
+        map.put("height", 1695445);
         String s = ElasticsearchUtil.addData(map, "sync_index", "blockHeight", "startHeight");
         log.info("{}", s);
     }

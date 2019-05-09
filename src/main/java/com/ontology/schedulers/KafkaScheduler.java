@@ -5,6 +5,7 @@ import com.github.ontio.network.exception.RestfulException;
 import com.ontology.utils.ElasticsearchUtil;
 import com.ontology.utils.SDKUtil;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.kafka.common.errors.InterruptException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.SendResult;
@@ -24,7 +25,6 @@ import java.util.Map;
 public class KafkaScheduler extends BaseScheduler {
 
     private String indexName = "sync_index";
-    private String eventsType = "events";
     private String heightType = "blockHeight";
     @Autowired
     private SDKUtil sdk;
@@ -45,6 +45,7 @@ public class KafkaScheduler extends BaseScheduler {
 
             Integer height = ElasticsearchUtil.searchMaxValue(indexName, heightType, "height");
             if (height == -2147483648) {
+                // height不存在
                 currentHeight = 0;
                 Map<String, Object> map = new HashMap<>();
                 map.put("height", 0);
@@ -68,6 +69,7 @@ public class KafkaScheduler extends BaseScheduler {
                     @Override
                     public void onFailure(Throwable throwable) {
                         log.info("发送消息失败:" + throwable.getMessage());
+
                     }
 
                     @Override
