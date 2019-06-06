@@ -20,20 +20,24 @@ public class EsTest {
     public void testSearchES() {
         int i = ElasticsearchUtil.searchMaxValue("sync_index", "blockHeight", "height");
         log.info("{}", i);
-        if (i == -2147483648) {
-            Map<String, Object> map = new HashMap<>();
-            map.put("height", 0);
-            String s = ElasticsearchUtil.addData(map, "sync_index", "blockHeight", "1");
-            log.info("{}", s);
-        }
+//        if (i == -2147483648) {
+//            Map<String, Object> map = new HashMap<>();
+//            map.put("height", 0);
+//            String s = ElasticsearchUtil.addData(map, "sync_index", "blockHeight", "1");
+//            log.info("{}", s);
+//        }
     }
 
     @Test
     public void testSearchES2() {
         Map<String, Object> map = new HashMap<>();
-        map.put("height", 1714329);
+        map.put("height", 217915);
         String s = ElasticsearchUtil.addData(map, "sync_index", "blockHeight", "startHeight");
         log.info("{}", s);
+    }
+    @Test
+    public void deleDoc() {
+        ElasticsearchUtil.deleteDataById("sync_index", "blockHeight", "previousHeight");
     }
 
 }
