@@ -122,7 +122,7 @@ public class KafkaScheduler extends BaseScheduler {
             map.put("height", i);
             ElasticsearchUtil.addData(map, indexName, heightType, "startHeight");
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("catch exception:",e);
             log.info("{}", i);
             if (i != 0) {
                 Map<String, Object> map = new HashMap<>();
@@ -174,7 +174,7 @@ public class KafkaScheduler extends BaseScheduler {
             try {
                 events = sdk.getSmartCodeEvent(i);
             } catch (Exception e) {
-                e.printStackTrace();
+                log.error("catch exception:",e);
                 i--;
             }
             if (!StringUtils.isEmpty(events)) {

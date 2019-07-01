@@ -29,14 +29,14 @@ public class EsTest {
     }
 
     @Test
-    public void testSearchES2() {
+    public void setStartHeight() {
         Map<String, Object> map = new HashMap<>();
-        map.put("height", 217915);
+        map.put("height", 446034);//397530
         String s = ElasticsearchUtil.addData(map, "sync_index", "blockHeight", "startHeight");
         log.info("{}", s);
     }
     @Test
-    public void deleDoc() {
+    public void deleteDoc() {
         ElasticsearchUtil.deleteDataById("sync_index", "blockHeight", "previousHeight");
     }
 
