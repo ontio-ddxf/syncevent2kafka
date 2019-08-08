@@ -31,7 +31,7 @@ public class EsTest {
     @Test
     public void setStartHeight() {
         Map<String, Object> map = new HashMap<>();
-        map.put("height", 446034);//397530
+        map.put("height", 1018922);//397530
         String s = ElasticsearchUtil.addData(map, "sync_index", "blockHeight", "startHeight");
         log.info("{}", s);
     }

@@ -89,8 +89,17 @@ public class KafkaScheduler extends BaseScheduler {
         try {
             int blockHeight = sdk.getBlockHeight();
             int currentHeight;
-
-            Integer height = ElasticsearchUtil.searchMaxValue(indexName, heightType, "height");
+            Integer height = null;
+            try {
+                height = ElasticsearchUtil.searchMaxValue(indexName, heightType, "height");
+            } catch (Exception e) {
+                Map<String, Object> map = new HashMap<>();
+                map.put("height", blockHeight);
+                ElasticsearchUtil.addData(map, indexName, heightType, "startHeight");
+            }
+            if (height == null) {
+                return;
+            }
             if (height == -2147483648) {
                 // height不存在
                 currentHeight = 0;
