@@ -85,7 +85,7 @@ public class KafkaScheduler extends BaseScheduler {
                         Map<String, Object> data = new HashMap<>();
                         data.put("height", i);
                         data.put("events", event.toJSONString());
-                        ListenableFuture<SendResult<String, Object>> future = kafkaTemplate.send("topic-test-event", JSON.toJSONString(data));
+                        kafkaTemplate.send(Constant.KAFKA_TOPIC, JSON.toJSONString(data));
                     }
                 }
             }
@@ -143,8 +143,7 @@ public class KafkaScheduler extends BaseScheduler {
                     Map<String, Object> data = new HashMap<>();
                     data.put("height", i);
                     data.put("events", event.toJSONString());
-                    ListenableFuture<SendResult<String, Object>> future = kafkaTemplate.send("topic-block-event", JSON.toJSONString(data));
-
+                    kafkaTemplate.send(Constant.KAFKA_TOPIC, JSON.toJSONString(data));
                 }
             }
         }

@@ -14,16 +14,8 @@ public class Constant {
     public static final String ES_TYPE_SYNC = "blockHeight";
 
     /**
-     * sdk手续费
+     * KAFKA topic
      */
-    public static final long GAS_PRICE = 0;
-    public static final long GAS_Limit = 20000;
+    public static final String KAFKA_TOPIC = "topic-block-event";
 
-
-    public static final String ONTID_PREFIX = "did:ont:%s";
-
-    /**
-     * 积分精度
-     */
-    public static final BigDecimal DECIMAL = new BigDecimal(Math.pow(10,9));
 }
