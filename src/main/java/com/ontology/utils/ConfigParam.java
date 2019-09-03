@@ -13,8 +13,16 @@ public class ConfigParam {
 	@Value("${service.restfulUrl}")
 	public String RESTFUL_URL;
 
-	@Value("${service.payer.address}")
-	public String PAYER_ADDRESS;
+	/**
+	 *  清空之前同步的块高记录开关
+	 *  (只清除块高记录，不清除区块事件)
+	 */
+	@Value("${clear.sync.switch}")
+	public boolean CLEAR_SYNC_SWITCH;
 
-
+	/**
+	 *  同步之前块高记录开关
+	 */
+	@Value("${sync.preblock.switch}")
+	public boolean SYNC_PREBLOCK_SWITCH;
 }
