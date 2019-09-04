@@ -19,8 +19,10 @@ public class InitUtil implements CommandLineRunner {
     @Override
     public void run(String... args) throws Exception {
         if (configParam.CLEAR_SYNC_SWITCH) {
-            // 清除之前同步的块高记录，从最新块开始同步
-            ElasticsearchUtil.deleteIndex(Constant.ES_INDEX_SYNC);
+            if (ElasticsearchUtil.isIndexExist(Constant.ES_INDEX_SYNC)) {
+                // 清除之前同步的块高记录，从最新块开始同步
+                ElasticsearchUtil.deleteIndex(Constant.ES_INDEX_SYNC);
+            }
         } else {
             if (!ElasticsearchUtil.isIndexExist(Constant.ES_INDEX_SYNC)) {
                 ElasticsearchUtil.createIndex(Constant.ES_INDEX_SYNC);

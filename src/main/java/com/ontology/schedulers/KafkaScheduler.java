@@ -78,6 +78,7 @@ public class KafkaScheduler extends BaseScheduler {
             for (i = currentHeight; i <= blockHeight; i++) {
                 log.info("当前块高:{}", i);
                 Object events = sdk.getSmartCodeEvent(i);
+                log.info("events:{}",events);
                 if (!StringUtils.isEmpty(events)) {
                     JSONArray eventList = (JSONArray) events;
                     for (int j = 0; j < eventList.size(); j++) {
@@ -104,7 +105,7 @@ public class KafkaScheduler extends BaseScheduler {
     }
 
 
-    @Scheduled(initialDelay = 10000, fixedDelay = 3600000)
+//    @Scheduled(initialDelay = 10000, fixedDelay = 3600000)
     public void synchronizePreviousData() {
         if (!configParam.SYNC_PREBLOCK_SWITCH) {
             return;
