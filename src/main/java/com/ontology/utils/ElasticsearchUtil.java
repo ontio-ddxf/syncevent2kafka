@@ -1,34 +1,44 @@
 package com.ontology.utils;
 
+import com.alibaba.fastjson.JSON;
 import com.ontology.model.EsPage;
-import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
-import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
-import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsResponse;
+import lombok.extern.slf4j.Slf4j;
+import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
+import org.elasticsearch.action.admin.indices.get.GetIndexRequest;
+import org.elasticsearch.action.delete.DeleteRequest;
 import org.elasticsearch.action.delete.DeleteResponse;
-import org.elasticsearch.action.get.GetRequestBuilder;
+import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;
+import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.index.IndexResponse;
-import org.elasticsearch.action.search.SearchRequestBuilder;
+import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
-import org.elasticsearch.action.search.SearchType;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.action.update.UpdateRequest;
-import org.elasticsearch.client.transport.TransportClient;
+import org.elasticsearch.client.RequestOptions;
+import org.elasticsearch.client.RestHighLevelClient;
+import org.elasticsearch.client.indices.CreateIndexRequest;
+import org.elasticsearch.client.indices.CreateIndexResponse;
+import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.text.Text;
+import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.aggregations.AggregationBuilder;
 import org.elasticsearch.search.aggregations.AggregationBuilders;
 import org.elasticsearch.search.aggregations.metrics.max.Max;
+import org.elasticsearch.search.builder.SearchSourceBuilder;
+import org.elasticsearch.search.fetch.subphase.FetchSourceContext;
 import org.elasticsearch.search.fetch.subphase.highlight.HighlightBuilder;
 import org.elasticsearch.search.sort.SortOrder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
 import javax.annotation.PostConstruct;
+import javax.annotation.Resource;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -41,14 +51,15 @@ import java.util.UUID;
  * @Modified by:
  */
 @Component
+@Slf4j
 public class ElasticsearchUtil {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ElasticsearchUtil.class);
 
-    @Autowired
-    private TransportClient transportClient;
+    @Resource(name = "RHLClient")
+    private RestHighLevelClient rhlClient;
 
-    private static TransportClient client;
+    private static RestHighLevelClient client;
 
 
     /**
@@ -56,7 +67,7 @@ public class ElasticsearchUtil {
      */
     @PostConstruct
     public void init() {
-        client = this.transportClient;
+        client = this.rhlClient;
     }
 
     /**
@@ -65,13 +76,15 @@ public class ElasticsearchUtil {
      * @param index
      * @return
      */
-    public static boolean createIndex(String index) {
+    public static boolean createIndex(String index) throws IOException {
         if (!isIndexExist(index)) {
             LOGGER.info("Index is not exits!");
         }
-        CreateIndexResponse indexresponse = client.admin().indices().prepareCreate(index).execute().actionGet();
-        LOGGER.info("执行建立成功？" + indexresponse.isAcknowledged());
-        return indexresponse.isAcknowledged();
+
+        CreateIndexRequest request = new CreateIndexRequest(index);
+        CreateIndexResponse createIndexResponse = client.indices().create(request, RequestOptions.DEFAULT);
+        LOGGER.info("执行建立成功？" + createIndexResponse.isAcknowledged());
+        return createIndexResponse.isAcknowledged();
     }
 
     /**
@@ -80,17 +93,18 @@ public class ElasticsearchUtil {
      * @param index
      * @return
      */
-    public static boolean deleteIndex(String index) {
-        if (!isIndexExist(index)) {
-            LOGGER.info("Index is not exits!");
-        }
-        AcknowledgedResponse acknowledgedResponse = client.admin().indices().prepareDelete(index).execute().actionGet();
-        if (acknowledgedResponse.isAcknowledged()) {
+    public static boolean deleteIndex(String index) throws IOException {
+//        if (!isIndexExist(index)) {
+//            LOGGER.info("Index is not exits!");
+//        }
+        DeleteIndexRequest deleteIndexRequest = new DeleteIndexRequest(index);
+        AcknowledgedResponse delete = client.indices().delete(deleteIndexRequest, RequestOptions.DEFAULT);
+        if (delete.isAcknowledged()) {
             LOGGER.info("delete index " + index + "  successfully!");
         } else {
             LOGGER.info("Fail to delete index " + index);
         }
-        return acknowledgedResponse.isAcknowledged();
+        return delete.isAcknowledged();
     }
 
     /**
@@ -99,27 +113,30 @@ public class ElasticsearchUtil {
      * @param index
      * @return
      */
-    public static boolean isIndexExist(String index) {
-        IndicesExistsResponse inExistsResponse = client.admin().indices().exists(new IndicesExistsRequest(index)).actionGet();
-        if (inExistsResponse.isExists()) {
+    public static boolean isIndexExist(String index) throws IOException {
+        GetIndexRequest request = new GetIndexRequest();
+        request.indices(index);
+//        client.exists(request,RequestOptions.DEFAULT);
+        boolean exists = client.indices().exists(request, RequestOptions.DEFAULT);
+        if (exists) {
             LOGGER.info("Index [" + index + "] is exist!");
         } else {
             LOGGER.info("Index [" + index + "] is not exist!");
         }
-        return inExistsResponse.isExists();
+        return exists;
     }
 
-    /**
-     * @Author: LX
-     * @Description: 判断inde下指定type是否存在
-     * @Date: 2018/11/6 14:46
-     * @Modified by:
-     */
-    public boolean isTypeExist(String index, String type) {
-        return isIndexExist(index)
-                ? client.admin().indices().prepareTypesExists(index).setTypes(type).execute().actionGet().isExists()
-                : false;
-    }
+//    /**
+//     * @Author: LX
+//     * @Description: 判断inde下指定type是否存在
+//     * @Date: 2018/11/6 14:46
+//     * @Modified by:
+//     */
+//    public boolean isTypeExist(String index, String type) throws IOException {
+//        return isIndexExist(index)
+//                ? client.indices().(index).setTypes(type).execute().actionGet().isExists()
+//                : false;
+//    }
 
     /**
      * 数据添加
@@ -130,10 +147,12 @@ public class ElasticsearchUtil {
      * @param id    数据ID
      * @return
      */
-    public static String addData(Map obj, String index, String type, String id) {
-        IndexResponse response = client.prepareIndex(index, type, id).setSource(obj).get();
-        LOGGER.info("addData response status:{},id:{}", response.status().getStatus(), response.getId());
-        return response.getId();
+    public static String addData(Map obj, String index, String type, String id) throws IOException {
+        IndexRequest indexRequest = new IndexRequest(index, type, id);
+        indexRequest.source(JSON.toJSONString(obj), XContentType.JSON);
+        IndexResponse indexResponse = client.index(indexRequest, RequestOptions.DEFAULT);
+        LOGGER.info("addData response status:{},id:{}", indexResponse.status().getStatus(), indexResponse.getId());
+        return indexResponse.getId();
     }
 
     /**
@@ -144,7 +163,7 @@ public class ElasticsearchUtil {
      * @param type  类型，类似表
      * @return
      */
-    public static String addData(Map obj, String index, String type) {
+    public static String addData(Map obj, String index, String type) throws IOException {
         return addData(obj, index, type, UUID.randomUUID().toString().replaceAll("-", "").toUpperCase());
     }
 
@@ -155,10 +174,9 @@ public class ElasticsearchUtil {
      * @param type  类型，类似表
      * @param id    数据ID
      */
-    public static void deleteDataById(String index, String type, String id) {
-
-        DeleteResponse response = client.prepareDelete(index, type, id).execute().actionGet();
-
+    public static void deleteDataById(String index, String type, String id) throws IOException {
+        DeleteRequest deleteRequest = new DeleteRequest(index, type, id);
+        DeleteResponse response = client.delete(deleteRequest, RequestOptions.DEFAULT);
         LOGGER.info("deleteDataById response status:{},id:{}", response.status().getStatus(), response.getId());
     }
 
@@ -171,7 +189,7 @@ public class ElasticsearchUtil {
      * @param id    数据ID
      * @return
      */
-    public static void updateDataById(Map obj, String index, String type, String id) {
+    public static void updateDataById(Map obj, String index, String type, String id) throws IOException {
 
         UpdateRequest updateRequest = new UpdateRequest();
 
@@ -190,17 +208,21 @@ public class ElasticsearchUtil {
      * @param fields 需要显示的字段，逗号分隔（缺省为全部字段）
      * @return
      */
-    public static Map<String, Object> searchDataById(String index, String type, String id, String fields) {
+    public static Map<String, Object> searchDataById(String index, String type, String id, String fields) throws IOException {
 
-        GetRequestBuilder getRequestBuilder = client.prepareGet(index, type, id);
+        GetRequest getRequest = new GetRequest(index, type, id);
 
         if (!StringUtils.isEmpty(fields)) {
-            getRequestBuilder.setFetchSource(fields.split(","), null);
+            String[] includes = fields.split(",");
+            String[] excludes = Strings.EMPTY_ARRAY;
+            FetchSourceContext fetchSourceContext = new FetchSourceContext(true, includes, excludes);
+            getRequest.fetchSourceContext(fetchSourceContext);
         }
 
-        GetResponse getResponse = getRequestBuilder.execute().actionGet();
-
+        GetResponse getResponse = client.get(getRequest, RequestOptions.DEFAULT);
         return getResponse.getSource();
+
+
     }
 
 
@@ -217,24 +239,21 @@ public class ElasticsearchUtil {
      * @param highlightField 高亮字段
      * @return
      */
-    public static EsPage searchDataPage(String index, String type, int startPage, int pageSize, QueryBuilder query, String fields, String sortField, String highlightField) {
-        SearchRequestBuilder searchRequestBuilder = client.prepareSearch(index);
-        if (!StringUtils.isEmpty(type)) {
-            searchRequestBuilder.setTypes(type.split(","));
-        }
-        searchRequestBuilder.setSearchType(SearchType.QUERY_THEN_FETCH);
+    public static EsPage searchDataPage(String index, String type, int startPage, int pageSize, QueryBuilder query, String fields, String sortField, String highlightField) throws IOException {
+        SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
 
-        // 需要显示的字段，逗号分隔（缺省为全部字段）
+        sourceBuilder.query(query);
+
         if (!StringUtils.isEmpty(fields)) {
-            searchRequestBuilder.setFetchSource(fields.split(","), null);
+            sourceBuilder.fetchSource(fields.split(","), null);
         }
 
-//排序字段
+        //排序字段
         if (!StringUtils.isEmpty(sortField)) {
-            searchRequestBuilder.addSort(sortField, SortOrder.DESC);
+            sourceBuilder.sort(sortField, SortOrder.DESC);
         }
 
-// 高亮（xxx=111,aaa=222）
+        // 高亮（xxx=111,aaa=222）
         if (!StringUtils.isEmpty(highlightField)) {
             HighlightBuilder highlightBuilder = new HighlightBuilder();
 
@@ -243,32 +262,29 @@ public class ElasticsearchUtil {
 
             // 设置高亮字段
             highlightBuilder.field(highlightField);
-            searchRequestBuilder.highlighter(highlightBuilder);
+            sourceBuilder.highlighter(highlightBuilder);
         }
 
-//searchRequestBuilder.setQuery(QueryBuilders.matchAllQuery());
-        searchRequestBuilder.setQuery(query);
-
         // 分页应用
-        searchRequestBuilder.setFrom(startPage * pageSize).setSize(pageSize);
+        sourceBuilder.from(startPage * pageSize).size(pageSize);
 
         // 设置是否按查询匹配度排序
-        searchRequestBuilder.setExplain(true);
-
-        //打印的内容 可以在 Elasticsearch head 和 Kibana  上执行查询
-        LOGGER.info("\n{}", searchRequestBuilder);
+        sourceBuilder.explain(true);
 
         // 执行搜索,返回搜索响应信息
-        SearchResponse searchResponse = searchRequestBuilder.execute().actionGet();
+        SearchRequest searchRequest = new SearchRequest(index);
+        searchRequest.types(type);
+        searchRequest.source(sourceBuilder);
+        SearchResponse response = client.search(searchRequest, RequestOptions.DEFAULT);
 
-        long totalHits = searchResponse.getHits().totalHits;
-        long length = searchResponse.getHits().getHits().length;
+        long totalHits = response.getHits().totalHits;
+        long length = response.getHits().getHits().length;
 
         LOGGER.debug("共查询到[{}]条数据,处理数据条数[{}]", totalHits, length);
 
-        if (searchResponse.status().getStatus() == 200) {
-// 解析对象
-            List<Map<String, Object>> sourceList = setSearchResponse(searchResponse, highlightField);
+        if (response.status().getStatus() == 200) {
+            // 解析对象
+            List<Map<String, Object>> sourceList = setSearchResponse(response, highlightField);
 
             return new EsPage(startPage, pageSize, (int) totalHits, sourceList);
         }
@@ -292,48 +308,50 @@ public class ElasticsearchUtil {
      */
     public static List<Map<String, Object>> searchListData(
             String index, String type, QueryBuilder query, Integer size,
-            String fields, String sortField, String highlightField) {
+            String fields, String sortField, String highlightField) throws IOException {
 
-        SearchRequestBuilder searchRequestBuilder = client.prepareSearch(index);
-        if (!StringUtils.isEmpty(type)) {
-            searchRequestBuilder.setTypes(type.split(","));
-        }
+        SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
 
-        if (!StringUtils.isEmpty(highlightField)) {
-            HighlightBuilder highlightBuilder = new HighlightBuilder();
-            // 设置高亮字段
-            highlightBuilder.field(highlightField);
-            searchRequestBuilder.highlighter(highlightBuilder);
-        }
-
-        searchRequestBuilder.setQuery(query);
+        sourceBuilder.query(query);
 
         if (!StringUtils.isEmpty(fields)) {
-            searchRequestBuilder.setFetchSource(fields.split(","), null);
+            sourceBuilder.fetchSource(fields.split(","), null);
         }
-        searchRequestBuilder.setFetchSource(true);
 
+        //排序字段
         if (!StringUtils.isEmpty(sortField)) {
-            searchRequestBuilder.addSort(sortField, SortOrder.DESC);
+            sourceBuilder.sort(sortField, SortOrder.DESC);
         }
 
-        if (size != null && size > 0) {
-            searchRequestBuilder.setSize(size);
+        // 高亮（xxx=111,aaa=222）
+        if (!StringUtils.isEmpty(highlightField)) {
+            HighlightBuilder highlightBuilder = new HighlightBuilder();
+
+            //highlightBuilder.preTags("<span style='color:red' >");//设置前缀
+            //highlightBuilder.postTags("</span>");//设置后缀
+
+            // 设置高亮字段
+            highlightBuilder.field(highlightField);
+            sourceBuilder.highlighter(highlightBuilder);
         }
 
-        //打印的内容 可以在 Elasticsearch head 和 Kibana  上执行查询
-        LOGGER.info("\n{}", searchRequestBuilder);
+        // 设置是否按查询匹配度排序
+        sourceBuilder.explain(true);
 
-        SearchResponse searchResponse = searchRequestBuilder.execute().actionGet();
+        // 执行搜索,返回搜索响应信息
+        SearchRequest searchRequest = new SearchRequest(index);
+        searchRequest.types(type);
+        searchRequest.source(sourceBuilder);
+        SearchResponse response = client.search(searchRequest, RequestOptions.DEFAULT);
 
-        long totalHits = searchResponse.getHits().totalHits;
-        long length = searchResponse.getHits().getHits().length;
+        long totalHits = response.getHits().totalHits;
+        long length = response.getHits().getHits().length;
 
-        LOGGER.info("共查询到[{}]条数据,处理数据条数[{}]", totalHits, length);
+        LOGGER.debug("共查询到[{}]条数据,处理数据条数[{}]", totalHits, length);
 
-        if (searchResponse.status().getStatus() == 200) {
+        if (response.status().getStatus() == 200) {
             // 解析对象
-            return setSearchResponse(searchResponse, highlightField);
+            return setSearchResponse(response, highlightField);
         }
         return null;
 
@@ -379,12 +397,16 @@ public class ElasticsearchUtil {
      * @param type
      * @param field
      */
-    public static int searchMaxValue(String index, String type, String field) {
+    public static int searchMaxValue(String index, String type, String field) throws IOException {
         AggregationBuilder termsBuilder = AggregationBuilders.max("max").field(field);
+        SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
+        sourceBuilder.aggregation(termsBuilder);
 
-        SearchRequestBuilder searchRequestBuilder = client.prepareSearch(index).setTypes(type).addAggregation(termsBuilder);
-        SearchResponse searchResponse = searchRequestBuilder.execute().actionGet();
-        Max max = searchResponse.getAggregations().get("max");
+        SearchRequest searchRequest = new SearchRequest(index);
+        searchRequest.types(type);
+        searchRequest.source(sourceBuilder);
+        SearchResponse response = client.search(searchRequest, RequestOptions.DEFAULT);
+        Max max = response.getAggregations().get("max");
         int value = (int) max.getValue();
         return value;
     }

@@ -10,14 +10,12 @@ import com.ontology.utils.SDKUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.core.KafkaTemplate;
-import org.springframework.kafka.support.SendResult;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
-import org.springframework.util.concurrent.ListenableFuture;
-import org.springframework.util.concurrent.ListenableFutureCallback;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -38,7 +36,7 @@ public class KafkaScheduler extends BaseScheduler {
      * 同步链上信息
      */
     @Scheduled(initialDelay = 5000, fixedDelay = 6000)
-    public void synchronizeData() {
+    public void synchronizeData() throws IOException {
         log.info("synchronizeData schedule : {}", Thread.currentThread().getName());
         int i = 0;
         try {
@@ -99,6 +97,7 @@ public class KafkaScheduler extends BaseScheduler {
             if (i != 0) {
                 Map<String, Object> map = new HashMap<>();
                 map.put("height", i);
+
                 ElasticsearchUtil.addData(map, Constant.ES_INDEX_SYNC, Constant.ES_TYPE_SYNC, "startHeight");
             }
         }
@@ -106,7 +105,7 @@ public class KafkaScheduler extends BaseScheduler {
 
 
 //    @Scheduled(initialDelay = 10000, fixedDelay = 3600000)
-    public void synchronizePreviousData() {
+    public void synchronizePreviousData() throws IOException {
         if (!configParam.SYNC_PREBLOCK_SWITCH) {
             return;
         }
