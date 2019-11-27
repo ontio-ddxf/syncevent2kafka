@@ -17,6 +17,7 @@ public class InitUtil implements CommandLineRunner {
     @Autowired
     private BlockHeightMapper blockHeightMapper;
 
+    //mysql方案
     @Override
     public void run(String... args) throws Exception {
         if (configParam.CLEAR_SYNC_SWITCH) {
@@ -24,6 +25,7 @@ public class InitUtil implements CommandLineRunner {
         }
     }
 
+    //ES方案
 //    @Override
 //    public void run(String... args) throws Exception {
 //        if (configParam.CLEAR_SYNC_SWITCH) {
