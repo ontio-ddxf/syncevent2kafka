@@ -13,6 +13,7 @@ import com.github.ontio.sdk.wallet.Identity;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -25,6 +26,8 @@ public class SDKUtil {
 
     @Autowired
     ConfigParam param;
+
+    private static int i = 0;
 
     public String createOntIdWithWif(String wif, String pwd) throws Exception {
         OntSdk ontSdk = getOntSdk();
@@ -60,10 +63,10 @@ public class SDKUtil {
 
     private OntSdk wm;
 
-    private OntSdk getOntSdk() throws Exception {
+    private OntSdk getOntSdk() {
         if (wm == null) {
             wm = OntSdk.getInstance();
-            wm.setRestful(param.RESTFUL_URL);
+            wm.setRestful(param.RESTFUL_URLS.get(0));
             wm.openWalletFile("wallet.json");
         }
         if (wm.getWalletMgr() == null) {
@@ -135,5 +138,21 @@ public class SDKUtil {
         OntSdk ontSdk = getOntSdk();
         Object smartCodeEvent = ontSdk.getConnect().getSmartCodeEvent(height);
         return smartCodeEvent;
+    }
+
+    public void nextUrl() {
+        addIndex();
+        List<String> restfulUrls = param.RESTFUL_URLS;
+        OntSdk ontSdk = getOntSdk();
+        ontSdk.setRestful(restfulUrls.get(i));
+    }
+
+    private synchronized void addIndex() {
+        int size = param.RESTFUL_URLS.size();
+        if (i == size - 1) {
+            i = 0;
+        } else {
+            i++;
+        }
     }
 }

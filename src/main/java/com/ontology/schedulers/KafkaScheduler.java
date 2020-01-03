@@ -79,6 +79,9 @@ public class KafkaScheduler extends BaseScheduler {
             }
         } catch (Exception e) {
             log.error("catch exception:", e);
+            // 切换restfulUrl
+            log.info("switch node");
+            sdk.nextUrl();
         } finally {
             // 循环结束，存储记录块高
             if (i != 0 && i != currentHeight) {

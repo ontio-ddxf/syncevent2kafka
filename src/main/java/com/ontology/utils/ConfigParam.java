@@ -3,6 +3,8 @@ package com.ontology.utils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 
 @Service("ConfigParam")
 public class ConfigParam {
@@ -12,6 +14,9 @@ public class ConfigParam {
 	 */
 	@Value("${service.restfulUrl}")
 	public String RESTFUL_URL;
+
+	@Value("${service.restfulUrls}")
+	public List<String> RESTFUL_URLS;
 
 	/**
 	 *  清空之前同步的块高记录开关
